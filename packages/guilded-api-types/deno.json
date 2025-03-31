@@ -1,6 +1,6 @@
 {
 	"name": "@jersey/guilded-api-types",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"license": "MIT",
 	"exports": {
 		".": "./src/mod.ts",
@@ -8,6 +8,6 @@
 	},
 	"tasks": {
 		"update_types": "deno run -A jsr:@jersey/openapi --url https://www.guilded.gg/api/v1/open-api-schema.json --dest ./src",
-		"ws_types": "deno run -A ~/projects/rvapi/packages/openapi/src/mod.ts --url https://www.guilded.gg/api/v1/socket-open-api-schema.json --skip_routes --skip_requests --dest ./src/ws"
+		"ws_types": "deno run -A ~jsr:@jersey/openapi --url https://www.guilded.gg/api/v1/socket-open-api-schema.json --skip_routes --skip_requests --dest ./src/ws"
 	}
 }

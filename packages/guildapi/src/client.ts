@@ -18,6 +18,7 @@ export function createClient(token: string): Client {
 		socket: new SocketManager({ token }),
 		request: createRequest('https://www.guilded.gg/api/v1', {
 			Authorization: `Bearer ${token}`,
+			'Content-Type': 'application/json',
 			'User-Agent': `jerseyguildapi/0.0.1 ${navigator.userAgent}`,
 			'x-guilded-bot-api-use-official-markdown': 'true',
 		}),

@@ -1,10 +1,10 @@
 {
 	"name": "@jersey/guildapi",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"license": "MIT",
 	"exports": "./src/mod.ts",
 	"imports": {
 		"@denosaurs/event": "jsr:@denosaurs/event@^2.0.2",
-		"@jersey/guilded-api-types": "jsr:@jersey/guilded-api-types@0.0.1"
+		"@jersey/guilded-api-types": "jsr:@jersey/guilded-api-types@0.0.2"
 	}
 }

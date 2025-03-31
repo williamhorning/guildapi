@@ -34,6 +34,10 @@ export function createRequest(
 		const req_body = ['head', 'get', 'HEAD', 'GET'].includes(method)
 			? undefined
 			: JSON.stringify(body);
+		
+		if (['head', 'get', 'HEAD', 'GET'].includes(method)) {
+			headers["Content-Type"] = "application/json";
+		}
 
 		// Build query string if there are query parameters
 		const query_string = query.size ? `?${query.toString()}` : '';
