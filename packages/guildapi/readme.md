@@ -9,7 +9,7 @@ import { createClient } from 'jsr:@jersey/guildapi';
 
 const client = createClient('<insert token>');
 
-client.bonfire.on('CreateMessage', console.log);
+client.socket.on('CreateMessage', console.log);
 
 client.request('post', `/channels/{channel}/messages`, { content: 'hello' });
 ```

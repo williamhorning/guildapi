@@ -1,30 +1,72 @@
 import { EventEmitter } from '@denosaurs/event';
 import type {
-	SocketBaseEvent,
-	SocketEventNames,
-	SocketEvents,
-	SocketOptions,
-	SocketWelcome,
-} from './types.ts';
-import { SocketOPs } from './types.ts';
+	components,
+	ResponseWelcomeMessage,
+	SocketEventEnvelope,
+	User,
+} from '@jersey/guilded-api-types/ws';
+import type { ClientOptions } from './mod.ts';
+
+/** opcodes returned by Guilded */
+export const SocketOPs = {
+	SUCCESS: 0,
+	WELCOME: 1,
+	RESUME: 2,
+	ERROR: 8,
+	PING: 9,
+	PONG: 10,
+} as const;
+
+/** Events supported by Guilded */
+export type SocketEventNames = Exclude<
+	keyof components['responses'],
+	'_WelcomeMessage'
+>;
+
+/** Welcome payload */
+export type SocketWelcome =
+	ResponseWelcomeMessage['content']['application/json'];
+
+/** Socket base payload */
+export type SocketBaseEvent = SocketEventEnvelope;
+
+/** Events from Guilded */
+export type SocketEvents =
+	& {
+		ready: [user: User];
+		reconnect: [];
+		close: [info: WebSocketCloseInfo];
+		debug: [data: string];
+		error: [data: Error, reason: SocketEventEnvelope];
+	}
+	& {
+		[E in SocketEventNames]: [
+			data: SocketEventEnvelope & {
+				d: components['responses'][E]['content']['application/json'];
+			},
+		];
+	};
 
 /** class which handles websocket connections to the guilded api */
 export class SocketManager extends EventEmitter<SocketEvents> {
 	/** the websocket connection */
-	socket?: WebSocketStream;
+	socket?: import('./stream.ts').default;
 	/** whether the connection is connected and pinging */
 	alive = false;
-	/** the last message ID recieved for resuming connections */
+	/** the last message ID received for resuming connections */
 	lastMessageID?: string;
 	/** attempts at a reconnection */
 	reconnectCount = 0;
 	/** the websocket writer */
 	private writer?: WritableStreamDefaultWriter<string>;
 	/** close info */
-	private closeInfo?: WebSocketCloseInfo;
+	private closeInfo?: {
+		code?: number;
+		reason?: string;
+	};
 
 	/** create a socket manager */
-	constructor(public readonly options: SocketOptions) {
+	constructor(public readonly options: ClientOptions) {
 		super();
 	}
 
@@ -33,7 +75,7 @@ export class SocketManager extends EventEmitter<SocketEvents> {
 		const headers: Record<string, string> = {
 			...this.options.headers,
 			Authorization: `Bearer ${this.options.token}`,
-			'User-Agent': `jerseyguildapi/0.0.1 ${navigator.userAgent}`,
+			'User-Agent': `guildapi/0.0.5 ${navigator.userAgent}`,
 			'x-guilded-bot-api-use-official-markdown': 'true',
 		};
 
@@ -41,7 +83,7 @@ export class SocketManager extends EventEmitter<SocketEvents> {
 			headers['guilded-last-message-id'] = this.lastMessageID;
 		}
 
-		this.socket = new WebSocketStream(
+		this.socket = new ("WebSocketStream" in globalThis ? WebSocketStream : (await import('./stream.ts')).default)(
 			this.options.socketURL ?? 'wss://www.guilded.gg/websocket/v1',
 			{ headers },
 		);
@@ -63,8 +105,8 @@ export class SocketManager extends EventEmitter<SocketEvents> {
 			const { value, done } = await reader.read();
 
 			if (done) break;
-			
-			this.emit("debug", `recieved packet: ${value}`)
+
+			this.emit('debug', `received packet: ${value}`);
 
 			try {
 				const data = JSON.parse(value as string) as SocketBaseEvent;
@@ -86,11 +128,11 @@ export class SocketManager extends EventEmitter<SocketEvents> {
 						);
 						break;
 					case SocketOPs.RESUME:
-						this.emit('debug', 'recieved resume packet');
+						this.emit('debug', 'received resume packet');
 						this.lastMessageID = undefined;
 						break;
 					case SocketOPs.ERROR:
-						this.emit('debug', 'recieved error packet');
+						this.emit('debug', 'received error packet');
 						this.emit(
 							'error',
 							new Error((data.d as { message: string }).message),
@@ -100,16 +142,16 @@ export class SocketManager extends EventEmitter<SocketEvents> {
 						this.socket?.close();
 						break;
 					case SocketOPs.PING:
-						this.emit('debug', 'recieved ping packet, sending pong');
+						this.emit('debug', 'received ping packet, sending pong');
 						this.writer?.write(JSON.stringify({
 							op: SocketOPs.PONG,
 						}));
 						break;
 					default:
-						this.emit('debug', 'recieved unknown opcode');
+						this.emit('debug', 'received unknown opcode');
 				}
 			} catch {
-				this.emit('debug', 'recieved invalid packet');
+				this.emit('debug', 'received invalid packet');
 			}
 		}
 	}
