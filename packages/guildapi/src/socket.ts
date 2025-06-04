@@ -1,9 +1,9 @@
 import { EventEmitter } from '@denosaurs/event';
+import type { User } from '@jersey/guilded-api-types';
 import type {
-	components,
-	ResponseWelcomeMessage,
-	SocketEventEnvelope,
-	User,
+	_SocketEventEnvelope,
+	_WelcomeMessage,
+	responses,
 } from '@jersey/guilded-api-types/ws';
 import type { ClientOptions } from './mod.ts';
 
@@ -18,17 +18,13 @@ export const SocketOPs = {
 } as const;
 
 /** Events supported by Guilded */
-export type SocketEventNames = Exclude<
-	keyof components['responses'],
-	'_WelcomeMessage'
->;
+export type SocketEventNames = Exclude<keyof responses, '_WelcomeMessage'>;
 
 /** Welcome payload */
-export type SocketWelcome =
-	ResponseWelcomeMessage['content']['application/json'];
+export type SocketWelcome = _WelcomeMessage;
 
 /** Socket base payload */
-export type SocketBaseEvent = SocketEventEnvelope;
+export type SocketBaseEvent = _SocketEventEnvelope;
 
 /** Events from Guilded */
 export type SocketEvents =
@@ -37,12 +33,12 @@ export type SocketEvents =
 		reconnect: [];
 		close: [info: WebSocketCloseInfo];
 		debug: [data: string];
-		error: [data: Error, reason: SocketEventEnvelope];
+		error: [data: Error, reason: _SocketEventEnvelope];
 	}
 	& {
 		[E in SocketEventNames]: [
-			data: SocketEventEnvelope & {
-				d: components['responses'][E]['content']['application/json'];
+			data: _SocketEventEnvelope & {
+				d: responses[E];
 			},
 		];
 	};
@@ -83,10 +79,13 @@ export class SocketManager extends EventEmitter<SocketEvents> {
 			headers['guilded-last-message-id'] = this.lastMessageID;
 		}
 
-		this.socket = new ("WebSocketStream" in globalThis ? WebSocketStream : (await import('./stream.ts')).default)(
-			this.options.socketURL ?? 'wss://www.guilded.gg/websocket/v1',
-			{ headers },
-		);
+		this.socket =
+			new ('WebSocketStream' in globalThis
+				? WebSocketStream
+				: (await import('./stream.ts')).default)(
+				this.options.socketURL ?? 'wss://www.guilded.gg/websocket/v1',
+				{ headers },
+			);
 
 		const { readable, writable } = await this.socket.opened;
 
@@ -124,7 +123,7 @@ export class SocketManager extends EventEmitter<SocketEvents> {
 					case SocketOPs.WELCOME:
 						this.emit(
 							'ready',
-							(data.d as SocketWelcome).user,
+							(data.d as unknown as SocketWelcome).user,
 						);
 						break;
 					case SocketOPs.RESUME:

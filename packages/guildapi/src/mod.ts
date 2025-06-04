@@ -28,10 +28,11 @@ export interface ClientOptions {
  * @param opts the options to use for the client
  */
 export function createClient(opts: string | ClientOptions): Client {
+	opts = typeof opts === 'string' ? { token: opts } : opts;
 	return {
-		socket: new SocketManager(typeof opts === "string" ? { token: opts } : opts),
+		socket: new SocketManager(opts),
 		request: createRequest('https://www.guilded.gg/api/v1', {
-			Authorization: `Bearer ${typeof opts === "string" ? opts : opts.token}`,
+			Authorization: `Bearer ${opts.token}`,
 			'Content-Type': 'application/json',
 			'User-Agent': `guildapi/0.0.5 ${navigator.userAgent}`,
 			'x-guilded-bot-api-use-official-markdown': 'true',
